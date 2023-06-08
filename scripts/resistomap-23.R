@@ -139,4 +139,5 @@ mutated_wide <- mutated_id %>%
 processed_controls <- mutated_wide[!mutated_wide$sample == "A-rep1", ]
 
 # Calculate delta ct, by subtracting AY1.
-delta_ct <- processed_controls[, 5:73] - processed_controls[, "AY1"]
+delta_ct <- processed_controls
+
