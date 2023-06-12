@@ -17,6 +17,14 @@ rawdata <- readxl::read_excel("raw-data/raw_results_drying_study_resistomap.xlsx
                                             "text")) %>% 
   janitor::clean_names()
 
+# import assay information
+assayinformation <- readxl::read_excel(
+  "~/GitHub/resistomap/raw-data/raw_results_drying_study_resistomap.xlsx",
+  sheet = "ARG selection")
+
+# import sample information
+samples <- read_csv("~/GitHub/resistomap/raw-data/samples.csv")
+
 # remove unsatisfactory flags
 flags_removed <- flag(rawdata)
 flags_removed$flags = NULL
@@ -131,13 +139,34 @@ mutated_id <- mutate(solo_removed, sample = case_when(
   str_starts(sample, "21A-rep2") ~ "U-rep2",
   str_starts(sample, "21A-rep3") ~ "U-rep3"))
 
-# pivot the table, so sample ID is across the top
+# pivot the table, so assay is across the top
 mutated_wide <- mutated_id %>%
   pivot_wider(names_from = assay, values_from = ct)
 
-# no AY1 data for A-rep1, so remove these
-processed_controls <- mutated_wide[!mutated_wide$sample == "A-rep1", ]
+mutated_wide$id = NULL
+mutated_wide$replicate = NULL
 
-# Calculate delta ct, by subtracting AY1.
-delta_ct <- processed_controls
+# pivot the table back to longer.
+mutated_long <- mutated_wide %>%
+  pivot_longer(cols = AY1:AY601, 
+               names_to = "assay", 
+               values_to = "ct")
 
+# pivot the table again, so sample is across the top, rather than assay.
+mutated_wide_2 <- mutated_long %>%
+  pivot_wider(
+    names_from = sample, values_from = ct)
+
+# transpose the table.
+transposed_ct <- t(mutated_wide_2[2:64])
+
+# Make sure the top row is the Assay codes, by first extracting as a list.
+assay_names <- t(mutated_wide_2[1])
+colnames(transposed_ct) <- as.character(assay_names[1,])
+
+# Calculate delta ct and make sure the output is as a data frame.
+df_transposed_ct <- as.data.frame(transposed_ct)
+delta_ct <- df_transposed_ct[ , 2:70] - df_transposed_ct[ , "AY1"]
+
+# create delta ct csv
+write.csv(delta_ct, "delta_ct_nostats.csv", row.names = TRUE)
