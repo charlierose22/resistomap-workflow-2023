@@ -20,10 +20,54 @@ rawdata <- readxl::read_excel("raw-data/raw_results_drying_study_resistomap.xlsx
 # import assay information
 assayinformation <- readxl::read_excel(
   "~/GitHub/resistomap/raw-data/raw_results_drying_study_resistomap.xlsx",
-  sheet = "ARG selection")
+  sheet = "ARG selection") %>% 
+  janitor::clean_names()
+assayinformation$forward_primer = NULL
+assayinformation$reverse_primer = NULL
 
 # import sample information
-samples <- read_csv("~/GitHub/resistomap/raw-data/samples.csv")
+samples <- read_csv("~/GitHub/resistomap/raw-data/samples.csv") %>% 
+  janitor::clean_names()
+
+# remove unsatisfactory flags
+flags_removed <- flag(rawdata)
+flags_removed$flags = NULL
+
+# add individual sample locations for removing "solo" results
+# "solo" results are when out of the three repeats, there was only amplification in one sample
+flags_removed$id = NA
+flags_removed$replicate = NA
+
+# fill in replicate IDs
+flags_removed <- mutate(flags_removed,
+                        replicate = case_when(
+                          str_detect(sample, "rep1") ~ "1",
+                          str_detect(sample, "rep2") ~ "2",
+                          str_detect(sample, "rep3") ~ "3" ))
+
+# fill in sample IDs.
+flags_removed <- mutate(flags_removed, id = case_when(
+  str_starts(sample, "1A") ~ "A",
+  str_starts(sample, "2A") ~ "B",
+  str_starts(sample, "3A") ~ "C" ,
+  str_starts(sample, "4A") ~ "D",
+  str_starts(sample, "5A") ~ "E",
+  str_starts(sample, "6A") ~ "F",
+  str_starts(sample, "7A") ~ "G",
+  str_starts(sample, "8A") ~ "H",
+  str_starts(sample, "9A") ~ "I",
+  str_starts(sample, "10A") ~ "J",
+  str_starts(sample, "11A") ~ "K",
+  str_starts(sample, "12A") ~ "L",
+  str_starts(sample, "13A") ~ "M",
+  str_starts(sample, "14A") ~ "N",
+  str_starts(sample, "15A") ~ "O",
+  str_starts(sample, "16A") ~ "P",
+  str_starts(sample, "17A") ~ "Q",
+  str_starts(sample, "18A") ~ "R",
+  str_starts(sample, "19A") ~ "S",
+  str_starts(sample, "20A") ~ "T",
+  str_starts(sample, "21A") ~ "U"))
 
 # remove unsatisfactory flags
 flags_removed <- flag(rawdata)
@@ -169,4 +213,145 @@ df_transposed_ct <- as.data.frame(transposed_ct)
 delta_ct <- df_transposed_ct[ , 2:70] - df_transposed_ct[ , "AY1"]
 
 # create delta ct csv
-write.csv(delta_ct, "delta_ct_nostats.csv", row.names = TRUE)
+write.csv(delta_ct, "data/delta_ct_nostats.csv", row.names = TRUE)
+
+# Turn the rownames into the first column to preserve them.
+delta_ct_rownames <- rownames_to_column(delta_ct, "sample")
+
+# pivot longer
+delta_ct_long <- delta_ct_rownames %>%
+  pivot_longer(cols = AY111:AY601, 
+               names_to = "assay", 
+               values_to = "delta_ct")
+
+# add replicate columns again.
+delta_ct_long$replicate = NA
+delta_ct_long$id = NA
+
+# fill in replicate IDs
+delta_ct_long <- mutate(delta_ct_long,
+                        replicate = case_when(
+                          str_detect(sample, "rep1") ~ "1",
+                          str_detect(sample, "rep2") ~ "2",
+                          str_detect(sample, "rep3") ~ "3" ))
+
+# fill in sample IDs.
+delta_ct_long <- mutate(delta_ct_long, id = case_when(
+  str_starts(sample, "A") ~ "A",
+  str_starts(sample, "B") ~ "B",
+  str_starts(sample, "C") ~ "C" ,
+  str_starts(sample, "D") ~ "D",
+  str_starts(sample, "E") ~ "E",
+  str_starts(sample, "F") ~ "F",
+  str_starts(sample, "G") ~ "G",
+  str_starts(sample, "H") ~ "H",
+  str_starts(sample, "I") ~ "I",
+  str_starts(sample, "J") ~ "J",
+  str_starts(sample, "K") ~ "K",
+  str_starts(sample, "L") ~ "L",
+  str_starts(sample, "M") ~ "M",
+  str_starts(sample, "N") ~ "N",
+  str_starts(sample, "O") ~ "O",
+  str_starts(sample, "P") ~ "P",
+  str_starts(sample, "Q") ~ "Q",
+  str_starts(sample, "R") ~ "R",
+  str_starts(sample, "S") ~ "S",
+  str_starts(sample, "T") ~ "T",
+  str_starts(sample, "U") ~ "U"))
+
+# remove nas
+nona_delta_ct <- delta_ct_long %>% drop_na()
+
+# calculate means
+means <- nona_delta_ct %>%
+  group_by(pick(id, assay)) %>%
+  summarise(mean = mean(delta_ct),
+            std = sd(delta_ct),
+            n = length(delta_ct),
+            se = std/sqrt(n))
+
+# left join for assay information and sample information
+assay_means = means %>% left_join(assayinformation, by = "assay")
+assay_samples_means = assay_means %>% left_join(samples, by = "id")
+
+# Rearrange columns.
+assay_samples_means <- subset(assay_samples_means, select = c(
+  assay, gene, target_antibiotics_major, id, day, height, length,
+  mean, std, n, se))
+
+# create delta ct annotated csv
+write.csv(assay_samples_means, "data/annotated_delta_ct_means.csv")
+
+# plots
+# Create a list of target antibiotics.
+target_antibiotics <- unique(assay_samples_means$target_antibiotics_major)
+
+# Create a loop for each target antibiotic.
+for (target_antibiotic in target_antibiotics) {
+  
+  # Create a subset of the data for the current target antibiotic.
+  data <- assay_samples_means[assay_samples_means$target_antibiotics_major == 
+                                target_antibiotic, ]
+  
+  # Create a heatmap of the data.
+  ggplot(data, aes(x = id, y = gene, fill = mean)) +
+    geom_tile() +
+    scale_y_discrete(limits = rev) +
+    scale_fill_gradient2(low = "turquoise3", high = "orange", mid = "yellow", 
+                         midpoint = 11) +
+    labs(x = "day", y = "gene", colour = "normalised delta ct") +
+    theme_bw(base_size = 10) +
+    theme(panel.grid.major = element_line(colour = "gray80"),
+          panel.grid.minor = element_line(colour = "gray80"),
+          axis.text.x = element_text(angle = 90),
+          legend.text = element_text(family = "serif", 
+                                     size = 10), 
+          axis.text = element_text(family = "serif", 
+                                   size = 10),
+          axis.title = element_text(family = "serif",
+                                    size = 10, face = "bold", colour = "gray20"),
+          legend.title = element_text(size = 10,
+                                      family = "serif"),
+          plot.background = element_rect(colour = NA,
+                                         linetype = "solid"), 
+          legend.key = element_rect(fill = NA)) + labs(fill = "intensity")
+  
+  # Save the heatmap to a file.
+  ggsave(paste0("figures/heatmaps/heatmap-", target_antibiotic, ".png"), 
+         width = 5, height = 5)
+}
+
+# Create a loop for each target antibiotic.
+for (target_antibiotic in target_antibiotics) {
+  
+  # Create a subset of the data for the current target antibiotic.
+  data2 <- assay_samples_means[assay_samples_means$target_antibiotics_major == 
+                                 target_antibiotic, ]
+  
+  # Create line graphs of the data.
+    ggplot(data2, aes(x = day, y = mean, colour = gene, 
+                      shape = height, alpha = length)) +
+    geom_jitter(width = 0.3) +
+      geom_line(aes(color =  gene)) +
+    labs(x = "day", y = "normalised delta ct") +
+    theme_bw(base_size = 10) +
+    guides(shape = "none", size = "none") +
+    theme(panel.grid.major = element_line(colour = "gray80"),
+          panel.grid.minor = element_line(colour = "gray80"),
+          axis.text.x = element_text(angle = 90),
+          legend.text = element_text(family = "serif", 
+                                     size = 10), 
+          axis.text = element_text(family = "serif",
+                                   size = 10),
+          axis.title = element_text(family = "serif",
+                                    size = 10, face = "bold", colour = "gray20"),
+          legend.title = element_text(size = 10,
+                                      family = "serif"),
+          plot.background = element_rect(colour = NA,
+                                         linetype = "solid"), 
+          legend.key = element_rect(colour = NA))
+  # Save the linegraph to a file.
+  ggsave(paste0("figures/linegraph/linegraph-", target_antibiotic, ".png"), 
+         width = 5, height = 5)
+}
+
