@@ -279,10 +279,19 @@ assay_samples_means <- subset(assay_samples_means, select = c(
   assay, gene, target_antibiotics_major, id, day, height, length,
   mean, std, n, se))
 
-# create delta ct annotated csv
-write.csv(assay_samples_means, "data/annotated_delta_ct_means.csv")
+# create separate data sets for location study and time series.
+location_study <- assay_samples_means[grepl('\\<1\\>|\\<29\\>',
+                                            assay_samples_means$day),]
+time_study <- assay_samples_means[grepl('bottom',
+                                        assay_samples_means$height),]
+time_study <- time_study[grepl('half', time_study$length),]
 
-# plots
+# create csvs of annotated data
+write.csv(assay_samples_means, "data/annotated_delta_ct_means.csv")
+write.csv(time_study, "data/annotated_time_study.csv")
+write.csv(location_study, "data/annotated_location_study.csv")
+
+# location study plots
 # Create a list of target antibiotics.
 target_antibiotics <- unique(assay_samples_means$target_antibiotics_major)
 
@@ -290,11 +299,81 @@ target_antibiotics <- unique(assay_samples_means$target_antibiotics_major)
 for (target_antibiotic in target_antibiotics) {
   
   # Create a subset of the data for the current target antibiotic.
-  data <- assay_samples_means[assay_samples_means$target_antibiotics_major == 
+  data <- location_study[location_study$target_antibiotics_major == 
                                 target_antibiotic, ]
   
   # Create a heatmap of the data.
-  ggplot(data, aes(x = id, y = gene, fill = mean)) +
+  ggplot(data, aes(x = day, y = height, fill = mean)) +
+    geom_tile() +
+    scale_y_discrete(limits = rev) +
+    scale_fill_gradient2(low = "turquoise3", high = "orange", mid = "yellow", 
+                         midpoint = 11) +
+    labs(x = "day", y = "height", colour = "normalised delta ct") +
+    theme_bw(base_size = 10) +
+    theme(panel.grid.major = element_line(colour = "gray80"),
+          panel.grid.minor = element_line(colour = "gray80"),
+          axis.text.x = element_text(angle = 90),
+          legend.text = element_text(family = "serif", 
+                                     size = 10), 
+          axis.text = element_text(family = "serif", 
+                                   size = 10),
+          axis.title = element_text(family = "serif",
+                                    size = 10, face = "bold", colour = "gray20"),
+          legend.title = element_text(size = 10,
+                                      family = "serif"),
+          plot.background = element_rect(colour = NA,
+                                         linetype = "solid"), 
+          legend.key = element_rect(fill = NA)) + labs(fill = "intensity")
+  
+  # Save the heatmap to a file.
+  ggsave(paste0("figures/heatmaps/location-heatmap-", target_antibiotic, ".png"), 
+         width = 5, height = 5)
+}
+
+# Create a loop for each target antibiotic.
+for (target_antibiotic in target_antibiotics) {
+  
+  # Create a subset of the data for the current target antibiotic.
+  data2 <- location_study[location_study$target_antibiotics_major == 
+                                 target_antibiotic, ]
+  
+  # Create line graphs of the data.
+    ggplot(data2, aes(x = day, y = log(mean), shape = height, alpha = length)) +
+    geom_jitter(width = 0.3) +
+      geom_line(aes(color =  gene)) +
+    labs(x = "day", y = "normalised delta ct") +
+    theme_bw(base_size = 10) +
+    guides(shape = "none", size = "none") +
+    theme(panel.grid.major = element_line(colour = "gray80"),
+          panel.grid.minor = element_line(colour = "gray80"),
+          axis.text.x = element_text(angle = 90),
+          legend.text = element_text(family = "serif", 
+                                     size = 10), 
+          axis.text = element_text(family = "serif",
+                                   size = 10),
+          axis.title = element_text(family = "serif",
+                                    size = 10, face = "bold", colour = "gray20"),
+          legend.title = element_text(size = 10,
+                                      family = "serif"),
+          plot.background = element_rect(colour = NA,
+                                         linetype = "solid"), 
+          legend.key = element_rect(colour = NA))
+  # Save the linegraph to a file.
+  ggsave(paste0("figures/linegraph/location-linegraph-", target_antibiotic, ".png"), 
+         width = 5, height = 5)
+}
+
+# time series plots
+
+# Create a loop for each target antibiotic.
+for (target_antibiotic in target_antibiotics) {
+  
+  # Create a subset of the data for the current target antibiotic.
+  data3 <- time_study[time_study$target_antibiotics_major == 
+                                target_antibiotic, ]
+  
+  # Create a heatmap of the data.
+  ggplot(data3, aes(x = day, y = gene, fill = mean)) +
     geom_tile() +
     scale_y_discrete(limits = rev) +
     scale_fill_gradient2(low = "turquoise3", high = "orange", mid = "yellow", 
@@ -317,7 +396,7 @@ for (target_antibiotic in target_antibiotics) {
           legend.key = element_rect(fill = NA)) + labs(fill = "intensity")
   
   # Save the heatmap to a file.
-  ggsave(paste0("figures/heatmaps/heatmap-", target_antibiotic, ".png"), 
+  ggsave(paste0("figures/heatmaps/time-heatmap-", target_antibiotic, ".png"), 
          width = 5, height = 5)
 }
 
@@ -325,14 +404,13 @@ for (target_antibiotic in target_antibiotics) {
 for (target_antibiotic in target_antibiotics) {
   
   # Create a subset of the data for the current target antibiotic.
-  data2 <- assay_samples_means[assay_samples_means$target_antibiotics_major == 
+  data4 <- time_study[time_study$target_antibiotics_major == 
                                  target_antibiotic, ]
   
   # Create line graphs of the data.
-    ggplot(data2, aes(x = day, y = mean, colour = gene, 
-                      shape = height, alpha = length)) +
+  ggplot(data4, aes(x = day, y = log(mean), colour = gene)) +
     geom_jitter(width = 0.3) +
-      geom_line(aes(color =  gene)) +
+    geom_line(aes(color =  gene)) +
     labs(x = "day", y = "normalised delta ct") +
     theme_bw(base_size = 10) +
     guides(shape = "none", size = "none") +
@@ -351,7 +429,7 @@ for (target_antibiotic in target_antibiotics) {
                                          linetype = "solid"), 
           legend.key = element_rect(colour = NA))
   # Save the linegraph to a file.
-  ggsave(paste0("figures/linegraph/linegraph-", target_antibiotic, ".png"), 
+  ggsave(paste0("figures/linegraph/time-linegraph-", target_antibiotic, ".png"), 
          width = 5, height = 5)
 }
 
