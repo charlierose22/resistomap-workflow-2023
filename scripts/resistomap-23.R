@@ -25,6 +25,21 @@ assayinformation <- readxl::read_excel(
 assayinformation$forward_primer = NULL
 assayinformation$reverse_primer = NULL
 
+# import moisture content
+moisture_content <- read_csv("raw-data/moisture_content.csv", 
+                             col_types = cols(Date = col_date(format = "%d-%m-%Y"), 
+                                              Boat_Weight_g = col_skip(), 
+                                              Start_Weight_g = col_skip(), 
+                                              End_Weight_g = col_skip(), 
+                                              Net_Start_Weight_g = col_double(), 
+                                              Net_End_Weight_g = col_double())) %>% 
+  janitor::clean_names()
+
+# remove % from moisture_content_pc
+moisture_content$moisture_content_pc = substr(
+  moisture_content$moisture_content_pc, 1, 
+  nchar(moisture_content$moisture_content_pc) - 1)
+
 # import sample information
 samples <- read_csv("~/GitHub/resistomap/raw-data/samples.csv") %>% 
   janitor::clean_names()
@@ -324,10 +339,6 @@ for (target_antibiotic in target_antibiotics) {
           plot.background = element_rect(colour = NA,
                                          linetype = "solid"), 
           legend.key = element_rect(fill = NA)) + labs(fill = "intensity")
-  
-  # Save the heatmap to a file.
-  ggsave(paste0("figures/heatmaps/location-heatmap-", target_antibiotic, ".png"), 
-         width = 5, height = 5)
 }
 
 # Create a loop for each target antibiotic.
@@ -432,4 +443,62 @@ for (target_antibiotic in target_antibiotics) {
   ggsave(paste0("figures/linegraph/time-linegraph-", target_antibiotic, ".png"), 
          width = 5, height = 5)
 }
+
+# split based on location study data
+split <- split(location_study, location_study$target_antibiotics_major)
+loc_aminoglycoside <- split$Aminoglycoside
+loc_beta_lactam <- split$'Beta Lactam'
+loc_integrons <- split$Integrons
+loc_multidrug <- split$MDR
+loc_mobile <- split$MGE
+loc_mlsb <- split$MLSB
+loc_other <- split$Other
+loc_phenicol <- split$Phenicol
+loc_quinolone <- split$Quinolone
+loc_sulfonamide <- split$Sulfonamide
+loc_tetracycline <- split$Tetracycline
+loc_trimethoprim <- split$Trimethoprim
+loc_vancomycin <- split$Vancomycin
+
+# split based on time series data
+split2 <- split(time_study, time_study$target_antibiotics_major)
+time_aminoglycoside <- split2$Aminoglycoside
+time_beta_lactam <- split2$'Beta Lactam'
+time_integrons <- split2$Integrons
+time_multidrug <- split2$MDR
+time_mobile <- split2$MGE
+time_mlsb <- split2$MLSB
+time_other <- split2$Other
+time_phenicol <- split2$Phenicol
+time_quinolone <- split2$Quinolone
+time_sulfonamide <- split2$Sulfonamide
+time_tetracycline <- split2$Tetracycline
+time_trimethoprim <- split2$Trimethoprim
+time_vancomycin <- split2$Vancomycin
+
+# graphs focus on tetracycline?
+
+# can we do a double y graph to compare with moisture content?
+
+ggplot(loc_tetracycline, aes(x = day, y = gene, fill = mean)) +
+  geom_tile() +
+  scale_y_discrete(limits = rev) +
+  scale_fill_gradient2(low = "turquoise3", high = "orange", mid = "yellow", 
+                       midpoint = 13.5) +
+  labs(x = "day", y = "height", colour = "normalised delta ct") +
+  theme_bw(base_size = 10) +
+  theme(panel.grid.major = element_line(colour = "gray80"),
+        panel.grid.minor = element_line(colour = "gray80"),
+        axis.text.x = element_text(angle = 90),
+        legend.text = element_text(family = "serif", 
+                                   size = 10), 
+        axis.text = element_text(family = "serif", 
+                                 size = 10),
+        axis.title = element_text(family = "serif",
+                                  size = 10, face = "bold", colour = "gray20"),
+        legend.title = element_text(size = 10,
+                                    family = "serif"),
+        plot.background = element_rect(colour = NA,
+                                       linetype = "solid"), 
+        legend.key = element_rect(fill = NA)) + labs(fill = "intensity")
 
