@@ -2,6 +2,8 @@
 if (!exists("flag", mode = "function")) source("scripts/functions.R")
 library(plyr)
 library(tidyverse)
+library(viridis)
+library(hrbrthemes)
 
 # import raw dataset
 rawdata <- readxl::read_excel("raw-data/raw_results_drying_study_resistomap.xlsx",
@@ -289,9 +291,17 @@ means <- nona_delta_ct %>%
 assay_means = means %>% left_join(assayinformation, by = "assay")
 assay_samples_means = assay_means %>% left_join(samples, by = "id")
 
+# swap pile length measurements for locations X and Y
+assay_samples_means$slice = NA
+assay_samples_means <- mutate(assay_samples_means,
+                        slice = case_when(
+                          str_detect(length, "half") ~ "X",
+                          str_detect(length, "quarter") ~ "Y"))
+assay_samples_means$length = NULL
+
 # Rearrange columns.
 assay_samples_means <- subset(assay_samples_means, select = c(
-  assay, gene, target_antibiotics_major, id, day, height, length,
+  assay, gene, target_antibiotics_major, id, day, height, slice,
   mean, std, n, se))
 
 # create separate data sets for location study and time series.
@@ -299,7 +309,7 @@ location_study <- assay_samples_means[grepl('\\<1\\>|\\<29\\>',
                                             assay_samples_means$day),]
 time_study <- assay_samples_means[grepl('bottom',
                                         assay_samples_means$height),]
-time_study <- time_study[grepl('half', time_study$length),]
+time_study <- time_study[grepl('x', time_study$slice),]
 
 # create csvs of annotated data
 write.csv(assay_samples_means, "data/annotated_delta_ct_means.csv")
@@ -324,21 +334,10 @@ for (target_antibiotic in target_antibiotics) {
     scale_fill_gradient2(low = "turquoise3", high = "orange", mid = "yellow", 
                          midpoint = 11) +
     labs(x = "day", y = "height", colour = "normalised delta ct") +
-    theme_bw(base_size = 10) +
-    theme(panel.grid.major = element_line(colour = "gray80"),
-          panel.grid.minor = element_line(colour = "gray80"),
-          axis.text.x = element_text(angle = 90),
-          legend.text = element_text(family = "serif", 
-                                     size = 10), 
-          axis.text = element_text(family = "serif", 
-                                   size = 10),
-          axis.title = element_text(family = "serif",
-                                    size = 10, face = "bold", colour = "gray20"),
-          legend.title = element_text(size = 10,
-                                      family = "serif"),
-          plot.background = element_rect(colour = NA,
-                                         linetype = "solid"), 
-          legend.key = element_rect(fill = NA)) + labs(fill = "intensity")
+    theme_ipsum(base_size = 10)
+  
+  # Save the linegraph to a file.
+  ggsave(paste0("figures/heatmaps/location-heatmap-", target_antibiotic, ".png"))
 }
 
 # Create a loop for each target antibiotic.
@@ -349,29 +348,15 @@ for (target_antibiotic in target_antibiotics) {
                                  target_antibiotic, ]
   
   # Create line graphs of the data.
-    ggplot(data2, aes(x = day, y = log(mean), shape = height, alpha = length)) +
-    geom_jitter(width = 0.3) +
-      geom_line(aes(color =  gene)) +
-    labs(x = "day", y = "normalised delta ct") +
-    theme_bw(base_size = 10) +
-    guides(shape = "none", size = "none") +
-    theme(panel.grid.major = element_line(colour = "gray80"),
-          panel.grid.minor = element_line(colour = "gray80"),
-          axis.text.x = element_text(angle = 90),
-          legend.text = element_text(family = "serif", 
-                                     size = 10), 
-          axis.text = element_text(family = "serif",
-                                   size = 10),
-          axis.title = element_text(family = "serif",
-                                    size = 10, face = "bold", colour = "gray20"),
-          legend.title = element_text(size = 10,
-                                      family = "serif"),
-          plot.background = element_rect(colour = NA,
-                                         linetype = "solid"), 
-          legend.key = element_rect(colour = NA))
+    ggplot(data2, aes(x = height, y = log(mean), fill = gene)) +
+      geom_bar(position = "stack", stat = "identity") +
+      scale_fill_viridis(discrete = T) +
+      labs(x = "height", y = "normalised delta ct") +
+      facet_grid(slice ~ .) +
+      theme_ipsum(base_size = 10)
+      
   # Save the linegraph to a file.
-  ggsave(paste0("figures/linegraph/location-linegraph-", target_antibiotic, ".png"), 
-         width = 5, height = 5)
+  ggsave(paste0("figures/bargraph/location-bargraph-", target_antibiotic, ".png"))
 }
 
 # time series plots
@@ -390,25 +375,10 @@ for (target_antibiotic in target_antibiotics) {
     scale_fill_gradient2(low = "turquoise3", high = "orange", mid = "yellow", 
                          midpoint = 11) +
     labs(x = "day", y = "gene", colour = "normalised delta ct") +
-    theme_bw(base_size = 10) +
-    theme(panel.grid.major = element_line(colour = "gray80"),
-          panel.grid.minor = element_line(colour = "gray80"),
-          axis.text.x = element_text(angle = 90),
-          legend.text = element_text(family = "serif", 
-                                     size = 10), 
-          axis.text = element_text(family = "serif", 
-                                   size = 10),
-          axis.title = element_text(family = "serif",
-                                    size = 10, face = "bold", colour = "gray20"),
-          legend.title = element_text(size = 10,
-                                      family = "serif"),
-          plot.background = element_rect(colour = NA,
-                                         linetype = "solid"), 
-          legend.key = element_rect(fill = NA)) + labs(fill = "intensity")
+    theme_ipsum(base_size = 10)
   
   # Save the heatmap to a file.
-  ggsave(paste0("figures/heatmaps/time-heatmap-", target_antibiotic, ".png"), 
-         width = 5, height = 5)
+  ggsave(paste0("figures/heatmaps/time-heatmap-", target_antibiotic, ".png"))
 }
 
 # Create a loop for each target antibiotic.
@@ -423,25 +393,10 @@ for (target_antibiotic in target_antibiotics) {
     geom_jitter(width = 0.3) +
     geom_line(aes(color =  gene)) +
     labs(x = "day", y = "normalised delta ct") +
-    theme_bw(base_size = 10) +
-    guides(shape = "none", size = "none") +
-    theme(panel.grid.major = element_line(colour = "gray80"),
-          panel.grid.minor = element_line(colour = "gray80"),
-          axis.text.x = element_text(angle = 90),
-          legend.text = element_text(family = "serif", 
-                                     size = 10), 
-          axis.text = element_text(family = "serif",
-                                   size = 10),
-          axis.title = element_text(family = "serif",
-                                    size = 10, face = "bold", colour = "gray20"),
-          legend.title = element_text(size = 10,
-                                      family = "serif"),
-          plot.background = element_rect(colour = NA,
-                                         linetype = "solid"), 
-          legend.key = element_rect(colour = NA))
+    theme_ipsum(base_size = 10)
+    
   # Save the linegraph to a file.
-  ggsave(paste0("figures/linegraph/time-linegraph-", target_antibiotic, ".png"), 
-         width = 5, height = 5)
+  ggsave(paste0("figures/linegraph/time-linegraph-", target_antibiotic, ".png"))
 }
 
 # split based on location study data
@@ -479,26 +434,4 @@ time_vancomycin <- split2$Vancomycin
 # graphs focus on tetracycline?
 
 # can we do a double y graph to compare with moisture content?
-
-ggplot(loc_tetracycline, aes(x = day, y = gene, fill = mean)) +
-  geom_tile() +
-  scale_y_discrete(limits = rev) +
-  scale_fill_gradient2(low = "turquoise3", high = "orange", mid = "yellow", 
-                       midpoint = 13.5) +
-  labs(x = "day", y = "height", colour = "normalised delta ct") +
-  theme_bw(base_size = 10) +
-  theme(panel.grid.major = element_line(colour = "gray80"),
-        panel.grid.minor = element_line(colour = "gray80"),
-        axis.text.x = element_text(angle = 90),
-        legend.text = element_text(family = "serif", 
-                                   size = 10), 
-        axis.text = element_text(family = "serif", 
-                                 size = 10),
-        axis.title = element_text(family = "serif",
-                                  size = 10, face = "bold", colour = "gray20"),
-        legend.title = element_text(size = 10,
-                                    family = "serif"),
-        plot.background = element_rect(colour = NA,
-                                       linetype = "solid"), 
-        legend.key = element_rect(fill = NA)) + labs(fill = "intensity")
 
