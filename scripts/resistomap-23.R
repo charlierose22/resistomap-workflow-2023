@@ -374,8 +374,7 @@ for (target_antibiotic in target_antibiotics) {
   ggplot(data3, aes(x = day, y = gene, fill = mean)) +
     geom_tile() +
     scale_y_discrete(limits = rev) +
-    scale_fill_gradient2(low = "turquoise3", high = "orange", mid = "yellow", 
-                         midpoint = 11) +
+    scale_fill_viridis(discrete = F) +
     labs(x = "day", y = "gene", colour = "normalised delta ct") +
     theme_ipsum(base_size = 10)
   
