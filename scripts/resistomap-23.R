@@ -295,8 +295,8 @@ assay_samples_means = assay_means %>% left_join(samples, by = "id")
 assay_samples_means$slice = NA
 assay_samples_means <- mutate(assay_samples_means,
                         slice = case_when(
-                          str_detect(length, "half") ~ "X",
-                          str_detect(length, "quarter") ~ "Y"))
+                          str_detect(length, "half") ~ "Y",
+                          str_detect(length, "quarter") ~ "Z"))
 assay_samples_means$length = NULL
 
 # Rearrange columns.
@@ -309,7 +309,7 @@ location_study <- assay_samples_means[grepl('\\<1\\>|\\<29\\>',
                                             assay_samples_means$day),]
 time_study <- assay_samples_means[grepl('bottom',
                                         assay_samples_means$height),]
-time_study <- time_study[grepl('x', time_study$slice),]
+time_study <- time_study[grepl('Y', time_study$slice),]
 
 # create csvs of annotated data
 write.csv(assay_samples_means, "data/annotated_delta_ct_means.csv")
@@ -391,10 +391,13 @@ for (target_antibiotic in target_antibiotics) {
                                  target_antibiotic, ]
   
   # Create line graphs of the data.
-  ggplot(data4, aes(x = day, y = log(mean), colour = gene)) +
+  ggplot(data4, aes(x = day, 
+                    y = log(mean), 
+                    colour = gene)) +
     geom_jitter(width = 0.3) +
     geom_line(aes(color =  gene)) +
     labs(x = "day", y = "normalised delta ct") +
+    scale_color_viridis(discrete = TRUE) +
     theme_ipsum(base_size = 10)
     
   # Save the linegraph to a file.
