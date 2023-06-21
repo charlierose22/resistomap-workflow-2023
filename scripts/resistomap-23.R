@@ -348,11 +348,13 @@ for (target_antibiotic in target_antibiotics) {
                                  target_antibiotic, ]
   
   # Create line graphs of the data.
-    ggplot(data2, aes(x = height, y = log(mean), fill = gene)) +
+  data2 %>% 
+    group_by(slice, day) %>% 
+  ggplot(aes(x = height, y = log(mean), fill = gene)) +
       geom_bar(position = "stack", stat = "identity") +
       scale_fill_viridis(discrete = T) +
       labs(x = "height", y = "normalised delta ct") +
-      facet_grid(slice ~ .) +
+      facet_grid(slice ~ day) +
       theme_ipsum(base_size = 10)
       
   # Save the linegraph to a file.
