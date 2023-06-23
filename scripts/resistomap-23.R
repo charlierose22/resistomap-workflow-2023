@@ -228,12 +228,13 @@ colnames(transposed_ct) <- as.character(assay_names[1,])
 # Calculate delta ct and make sure the output is as a data frame.
 df_transposed_ct <- as.data.frame(transposed_ct)
 delta_ct <- df_transposed_ct[ , 2:70] - df_transposed_ct[ , "AY1"]
+power_delta_ct <- 2^-(delta_ct)
 
 # create delta ct csv
 write.csv(delta_ct, "data/delta_ct_nostats.csv", row.names = TRUE)
 
 # Turn the rownames into the first column to preserve them.
-delta_ct_rownames <- rownames_to_column(delta_ct, "sample")
+delta_ct_rownames <- rownames_to_column(power_delta_ct, "sample")
 
 # pivot longer
 delta_ct_long <- delta_ct_rownames %>%
@@ -309,7 +310,7 @@ location_study <- assay_samples_means[grepl('\\<1\\>|\\<29\\>',
                                             assay_samples_means$day),]
 time_study <- assay_samples_means[grepl('bottom',
                                         assay_samples_means$height),]
-time_study <- time_study[grepl('Y', time_study$slice),]
+time_study <- time_study[grepl('X', time_study$slice),]
 
 # create csvs of annotated data
 write.csv(assay_samples_means, "data/annotated_delta_ct_means.csv")
@@ -337,7 +338,8 @@ for (target_antibiotic in target_antibiotics) {
     theme_ipsum(base_size = 10)
   
   # Save the linegraph to a file.
-  ggsave(paste0("figures/heatmaps/location-heatmap-", target_antibiotic, ".png"))
+  ggsave(paste0("figures/heatmaps/location-heatmap-", 
+                target_antibiotic, ".png"), width = 7, height = 7)
 }
 
 # Create a loop for each target antibiotic.
@@ -350,15 +352,16 @@ for (target_antibiotic in target_antibiotics) {
   # Create line graphs of the data.
   data2 %>% 
     group_by(slice, day) %>% 
-  ggplot(aes(x = height, y = log(mean), fill = gene)) +
-      geom_bar(position = "stack", stat = "identity") +
-      scale_fill_viridis(discrete = T) +
+    ggplot(aes(x = height, y = log(mean), fill = gene)) +
+    geom_bar(position = "stack", stat = "identity") +
+    scale_fill_viridis(discrete = T) +
       labs(x = "height", y = "normalised delta ct") +
       facet_grid(slice ~ day) +
       theme_ipsum(base_size = 10)
       
   # Save the linegraph to a file.
-  ggsave(paste0("figures/bargraph/location-bargraph-", target_antibiotic, ".png"))
+  ggsave(paste0("figures/bargraph/location-bargraph-", 
+                target_antibiotic, ".png"), width = 7, height = 7)
 }
 
 # time series plots
@@ -379,7 +382,8 @@ for (target_antibiotic in target_antibiotics) {
     theme_ipsum(base_size = 10)
   
   # Save the heatmap to a file.
-  ggsave(paste0("figures/heatmaps/time-heatmap-", target_antibiotic, ".png"))
+  ggsave(paste0("figures/heatmaps/time-heatmap-", 
+                target_antibiotic, ".png"), width = 6, height = 5)
 }
 
 # Create a loop for each target antibiotic.
@@ -400,7 +404,8 @@ for (target_antibiotic in target_antibiotics) {
     theme_ipsum(base_size = 10)
     
   # Save the linegraph to a file.
-  ggsave(paste0("figures/linegraph/time-linegraph-", target_antibiotic, ".png"))
+  ggsave(paste0("figures/linegraph/time-linegraph-", 
+                target_antibiotic, ".png"), width = 6, height = 5)
 }
 
 # graphs focus on tetracycline?
