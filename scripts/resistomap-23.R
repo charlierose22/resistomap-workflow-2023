@@ -295,8 +295,8 @@ assay_samples_means = assay_means %>% left_join(samples, by = "id")
 assay_samples_means$slice = NA
 assay_samples_means <- mutate(assay_samples_means,
                         slice = case_when(
-                          str_detect(length, "half") ~ "Y",
-                          str_detect(length, "quarter") ~ "Z"))
+                          str_detect(length, "half") ~ "X",
+                          str_detect(length, "quarter") ~ "Y"))
 assay_samples_means$length = NULL
 
 # Rearrange columns.
@@ -402,38 +402,6 @@ for (target_antibiotic in target_antibiotics) {
   # Save the linegraph to a file.
   ggsave(paste0("figures/linegraph/time-linegraph-", target_antibiotic, ".png"))
 }
-
-# split based on location study data
-split <- split(location_study, location_study$target_antibiotics_major)
-loc_aminoglycoside <- split$Aminoglycoside
-loc_beta_lactam <- split$'Beta Lactam'
-loc_integrons <- split$Integrons
-loc_multidrug <- split$MDR
-loc_mobile <- split$MGE
-loc_mlsb <- split$MLSB
-loc_other <- split$Other
-loc_phenicol <- split$Phenicol
-loc_quinolone <- split$Quinolone
-loc_sulfonamide <- split$Sulfonamide
-loc_tetracycline <- split$Tetracycline
-loc_trimethoprim <- split$Trimethoprim
-loc_vancomycin <- split$Vancomycin
-
-# split based on time series data
-split2 <- split(time_study, time_study$target_antibiotics_major)
-time_aminoglycoside <- split2$Aminoglycoside
-time_beta_lactam <- split2$'Beta Lactam'
-time_integrons <- split2$Integrons
-time_multidrug <- split2$MDR
-time_mobile <- split2$MGE
-time_mlsb <- split2$MLSB
-time_other <- split2$Other
-time_phenicol <- split2$Phenicol
-time_quinolone <- split2$Quinolone
-time_sulfonamide <- split2$Sulfonamide
-time_tetracycline <- split2$Tetracycline
-time_trimethoprim <- split2$Trimethoprim
-time_vancomycin <- split2$Vancomycin
 
 # graphs focus on tetracycline?
 
