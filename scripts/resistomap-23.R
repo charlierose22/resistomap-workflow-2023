@@ -349,10 +349,10 @@ for (target_antibiotic in target_antibiotics) {
   data2 <- location_study[location_study$target_antibiotics_major == 
                                  target_antibiotic, ]
   
-  # Create line graphs of the data.
+  # Create bar graphs of the data.
   data2 %>% 
     group_by(slice, day) %>% 
-    ggplot(aes(x = height, y = log(mean), fill = gene)) +
+    ggplot(aes(x = height, y = mean, fill = gene)) +
     geom_bar(position = "stack", stat = "identity") +
     scale_fill_viridis(discrete = T) +
       labs(x = "height", y = "normalised delta ct") +
@@ -395,20 +395,19 @@ for (target_antibiotic in target_antibiotics) {
   
   # Create line graphs of the data.
   ggplot(data4, aes(x = day, 
-                    y = log(mean), 
+                    y = mean, 
                     colour = gene)) +
-    geom_jitter(width = 0.3) +
+    geom_point() +
+    geom_errorbar(aes(x = day,
+                      ymin = mean - se,
+                      ymax = mean + se),
+                  width = .6) +
     geom_line(aes(color =  gene)) +
     labs(x = "day", y = "normalised delta ct") +
     scale_color_viridis(discrete = TRUE) +
     theme_ipsum(base_size = 10)
     
   # Save the linegraph to a file.
-  ggsave(paste0("figures/linegraph/time-linegraph-", 
+  ggsave(paste0("figures/linegraph/time-error-linegraph-", 
                 target_antibiotic, ".png"), width = 6, height = 5)
 }
-
-# graphs focus on tetracycline?
-
-# can we do a double y graph to compare with moisture content?
-
