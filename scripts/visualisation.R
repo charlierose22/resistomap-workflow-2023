@@ -92,3 +92,10 @@ for (target_antibiotic in target_antibiotics) {
   ggsave(paste0("figures/linegraph/time-error-linegraph-", 
                 target_antibiotic, ".png"), width = 6, height = 5)
 }
+
+# create a graph for total abundance of 16S data across samples.
+ggplot(samples_16S, aes(x = day,y = mean, fill = height)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  labs(x = "day", y = "ct") +
+  scale_color_viridis(discrete = TRUE) +
+  theme_ipsum(base_size = 10)

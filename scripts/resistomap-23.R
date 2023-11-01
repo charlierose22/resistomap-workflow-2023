@@ -319,3 +319,47 @@ time_study <- time_study[grepl('X', time_study$slice),]
 write.csv(assay_samples_means, "data/annotated_delta_ct_means.csv")
 write.csv(time_study, "data/annotated_time_study.csv")
 write.csv(location_study, "data/annotated_location_study.csv")
+
+# calculate total abundance of 16S rRNA and plot for each sample.
+total_16S <- mutated_wide_2[1, ]
+long_16S <- total_16S %>%
+  pivot_longer(cols = !1, 
+               names_to = "sample", 
+               values_to = "ct")
+long_16S$replicate = NA
+long_16S$id = NA
+mutate_long_16S <- mutate(long_16S,
+                          replicate = case_when(
+                          str_detect(sample, "rep1") ~ "1",
+                          str_detect(sample, "rep2") ~ "2",
+                          str_detect(sample, "rep3") ~ "3" ))
+mutate_long_16S <- mutate(mutate_long_16S, id = case_when(
+  str_starts(sample, "A") ~ "A",
+  str_starts(sample, "B") ~ "B",
+  str_starts(sample, "C") ~ "C" ,
+  str_starts(sample, "D") ~ "D",
+  str_starts(sample, "E") ~ "E",
+  str_starts(sample, "F") ~ "F",
+  str_starts(sample, "G") ~ "G",
+  str_starts(sample, "H") ~ "H",
+  str_starts(sample, "I") ~ "I",
+  str_starts(sample, "J") ~ "J",
+  str_starts(sample, "K") ~ "K",
+  str_starts(sample, "L") ~ "L",
+  str_starts(sample, "M") ~ "M",
+  str_starts(sample, "N") ~ "N",
+  str_starts(sample, "O") ~ "O",
+  str_starts(sample, "P") ~ "P",
+  str_starts(sample, "Q") ~ "Q",
+  str_starts(sample, "R") ~ "R",
+  str_starts(sample, "S") ~ "S",
+  str_starts(sample, "T") ~ "T",
+  str_starts(sample, "U") ~ "U"))
+nona_16S <- mutate_long_16S %>% drop_na()
+means_16S <- nona_16S %>%
+  group_by(id) %>%
+  summarise(mean = mean(ct),
+            std = sd(ct),
+            n = length(ct),
+            se = std/sqrt(n))
+samples_16S = means_16S %>% left_join(samples, by = "id")
