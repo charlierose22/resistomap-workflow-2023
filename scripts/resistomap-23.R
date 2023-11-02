@@ -295,17 +295,9 @@ means <- nona_delta_ct %>%
 assay_means = means %>% left_join(assayinformation, by = "assay")
 assay_samples_means = assay_means %>% left_join(samples, by = "id")
 
-# swap pile length measurements for locations X and Y
-assay_samples_means$slice = NA
-assay_samples_means <- mutate(assay_samples_means,
-                        slice = case_when(
-                          str_detect(length, "half") ~ "X",
-                          str_detect(length, "quarter") ~ "Y"))
-assay_samples_means$length = NULL
-
 # Rearrange columns.
 assay_samples_means <- subset(assay_samples_means, select = c(
-  assay, gene, target_antibiotics_major, id, day, height, slice,
+  assay, gene, target_antibiotics_major, id, day, height, length,
   mean, std, n, se))
 
 # create separate data sets for location study and time series.
@@ -313,7 +305,7 @@ location_study <- assay_samples_means[grepl('\\<1\\>|\\<29\\>',
                                             assay_samples_means$day),]
 time_study <- assay_samples_means[grepl('bottom',
                                         assay_samples_means$height),]
-time_study <- time_study[grepl('X', time_study$slice),]
+time_study <- time_study[grepl('half', time_study$length),]
 
 # create csvs of annotated data
 write.csv(assay_samples_means, "data/annotated_delta_ct_means.csv")
@@ -328,11 +320,13 @@ long_16S <- total_16S %>%
                values_to = "ct")
 long_16S$replicate = NA
 long_16S$id = NA
+
 mutate_long_16S <- mutate(long_16S,
                           replicate = case_when(
                           str_detect(sample, "rep1") ~ "1",
                           str_detect(sample, "rep2") ~ "2",
                           str_detect(sample, "rep3") ~ "3" ))
+
 mutate_long_16S <- mutate(mutate_long_16S, id = case_when(
   str_starts(sample, "A") ~ "A",
   str_starts(sample, "B") ~ "B",
@@ -363,3 +357,8 @@ means_16S <- nona_16S %>%
             n = length(ct),
             se = std/sqrt(n))
 samples_16S = means_16S %>% left_join(samples, by = "id")
+samples_16S_plot <- samples_16S[!grepl("control", samples_16S$height), ]
+# create separate data sets for location study and time series.
+location_16S <- samples_16S_plot[grepl('\\<1\\>|\\<29\\>',samples_16S_plot$day),]
+time_16S <- samples_16S_plot[grepl('bottom',samples_16S_plot$height),]
+time_16S <- time_16S[grepl('half', time_16S$length),]

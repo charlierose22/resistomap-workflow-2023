@@ -10,12 +10,12 @@ for (target_antibiotic in target_antibiotics) {
                            target_antibiotic, ]
   
   # Create a heatmap of the data.
-  ggplot(data, aes(x = day, y = height, fill = mean)) +
+  ggplot(data, aes(x = day, y = gene, fill = mean)) +
     geom_tile() +
     scale_y_discrete(limits = rev) +
-    scale_fill_gradient2(low = "turquoise3", high = "orange", mid = "yellow", 
-                         midpoint = 11) +
-    labs(x = "day", y = "height", colour = "normalised delta ct") +
+    scale_fill_viridis(discrete = F) +
+    labs(x = "day", y = "gene", colour = "abundance") +
+    facet_grid(length ~ height) +
     theme_ipsum(base_size = 10)
   
   # Save the linegraph to a file.
@@ -32,12 +32,12 @@ for (target_antibiotic in target_antibiotics) {
   
   # Create bar graphs of the data.
   data2 %>% 
-    group_by(slice, day) %>% 
-    ggplot(aes(x = height, y = mean, fill = gene)) +
+    group_by(length, height) %>% 
+    ggplot(aes(x = day, y = mean, fill = gene)) +
     geom_bar(position = "stack", stat = "identity") +
     scale_fill_viridis(discrete = T) +
-    labs(x = "height", y = "normalised delta ct") +
-    facet_grid(slice ~ day) +
+    labs(x = "day", y = "abundance", fill = "gene") +
+    facet_grid(length ~ height) +
     theme_ipsum(base_size = 10)
   
   # Save the linegraph to a file.
@@ -59,7 +59,7 @@ for (target_antibiotic in target_antibiotics) {
     geom_tile() +
     scale_y_discrete(limits = rev) +
     scale_fill_viridis(discrete = F) +
-    labs(x = "day", y = "gene", colour = "normalised delta ct") +
+    labs(x = "day", y = "gene", colour = "abundance") +
     theme_ipsum(base_size = 10)
   
   # Save the heatmap to a file.
@@ -77,15 +77,15 @@ for (target_antibiotic in target_antibiotics) {
   # Create line graphs of the data.
   ggplot(data4, aes(x = day, 
                     y = mean, 
-                    colour = gene)) +
+                    color = gene)) +
     geom_point() +
     geom_errorbar(aes(x = day,
                       ymin = mean - se,
                       ymax = mean + se),
                   width = .6) +
     geom_line(aes(color =  gene)) +
-    labs(x = "day", y = "normalised delta ct") +
-    scale_color_viridis(discrete = TRUE) +
+    labs(x = "day", y = "abundance", color = "gene") +
+    scale_color_viridis(discrete = T) +
     theme_ipsum(base_size = 10)
   
   # Save the linegraph to a file.
@@ -93,9 +93,23 @@ for (target_antibiotic in target_antibiotics) {
                 target_antibiotic, ".png"), width = 6, height = 5)
 }
 
+write.csv(samples_16S_plot, 
+          "data/16S_abundance.csv", 
+          row.names = FALSE)
+
 # create a graph for total abundance of 16S data across samples.
-ggplot(samples_16S, aes(x = day,y = mean, fill = height)) +
-  geom_bar(stat = 'identity', position = 'dodge') +
-  labs(x = "day", y = "ct") +
-  scale_color_viridis(discrete = TRUE) +
+ggplot(location_16S, aes(x = day, y = mean, fill = length)) +
+  geom_col(position = 'dodge') +
+  labs(x = "day", y = "ct", fill = "location") +
+  scale_color_viridis(discrete = T) +
+  facet_wrap(~ height) +
   theme_ipsum(base_size = 10)
+ggsave(paste0("figures/16S-location.png"), width = 8, height = 5)
+ggplot(time_16S, aes(x = day, y = mean, fill = length)) +
+  geom_col(position = 'dodge') +
+  labs(x = "day", y = "ct", fill = "location") +
+  scale_color_viridis(discrete = T) +
+  facet_wrap(~ height) +
+  theme_ipsum(base_size = 10)
+ggsave(paste0("figures/16S-time.png"), width = 8, height = 5)
+
